@@ -42,7 +42,7 @@ public enum RMOnboardingSDK {
     ///   - enableSecurityCheck: Whether to enable security checks (default: true)
     ///   - completionHandler: Completion handler with success status and optional message
     ///
-    /// - Throws: OneClickSdkError if the flow cannot be started
+    /// - Throws: RMOnboardingError if the flow cannot be started
     ///
     /// Example:
     /// ```swift

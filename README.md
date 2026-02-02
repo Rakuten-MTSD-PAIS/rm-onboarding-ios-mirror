@@ -31,6 +31,11 @@ Or in Xcode:
 
 ### 1. Import the SDK
 
+**Single import includes everything you need:**
+- `RMOnboardingSDK` - Main SDK wrapper with automatic analytics
+- `RatIntializers` - Analytics configuration
+- `RMOnboardingError` - Error handling (alias for OneClickSdkError)
+
 ```swift
 import RMOnboardingSDK
 ```
@@ -95,8 +100,10 @@ class OnboardingViewController: UIViewController {
                     print("❌ KYC failed: \(message ?? "Unknown error")")
                 }
             }
+        } catch let error as RMOnboardingError {
+            print("RMOnboarding Error: \(error.localizedDescription)")
         } catch {
-            print("Error starting KYC: \(error)")
+            print("Unexpected error: \(error)")
         }
     }
 }
