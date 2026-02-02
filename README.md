@@ -33,20 +33,11 @@ Or in Xcode:
 
 ```swift
 import RMOnboardingSDK
-import RMOnboardingSDKWrapper
 ```
 
-### 2. Initialize Analytics Adapter
+### 2. Use the SDK
 
-**Important:** You must inject the RakutenAnalytics adapter before using the SDK.
-
-```swift
-// In your AppDelegate or app initialization
-let analyticsAdapter = RatSdkRakutenAnalyticsAdapter()
-RatSdk.setSharedInstance(analyticsAdapter)
-```
-
-### 3. Use the SDK
+**No initialization required!** RakutenAnalytics tracking is automatically enabled when you call `startICChipKYC`.
 
 ```swift
 // Start the onboarding flow
@@ -58,13 +49,17 @@ let ratConfig = RatIntializers(
     ssc: "my-rakuten-mobile"
 )
 
-let viewController = OneClickSdk.startICChipKYC(
-    ratConfig: ratConfig,
-    sessionProvider: yourSessionProvider,
-    delegate: yourDelegate
-)
-
-present(viewController, animated: true)
+try await RMOnboardingSDK.startICChipKYC(
+    parentController: self,
+    minor: false,
+    idid: "your-idid",
+    redirectUri: "your-redirect-uri",
+    ratIntializers: ratConfig,
+    supportedKycTypes: "IC",
+    baseURL: "https://your-api-url.com"
+) { success, message in
+    print("KYC completed: \(success)")
+}
 ```
 
 ### Complete Example
@@ -72,28 +67,10 @@ present(viewController, animated: true)
 ```swift
 import UIKit
 import RMOnboardingSDK
-import RMOnboardingSDKWrapper
-
-@main
-class AppDelegate: UIResponder, UIApplicationDelegate {
-
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-    ) -> Bool {
-
-        // 1. Initialize RakutenAnalytics adapter
-        let analyticsAdapter = RatSdkRakutenAnalyticsAdapter()
-        RatSdk.setSharedInstance(analyticsAdapter)
-
-        // 2. SDK is now ready to use
-        return true
-    }
-}
 
 class OnboardingViewController: UIViewController {
 
-    func startOnboarding() {
+    func startOnboarding() async {
         let ratConfig = RatIntializers(
             customerId: "customer-123",
             contractedPlan: "premium",
@@ -102,13 +79,25 @@ class OnboardingViewController: UIViewController {
             ssc: "my-rakuten-mobile"
         )
 
-        let vc = OneClickSdk.startICChipKYC(
-            ratConfig: ratConfig,
-            sessionProvider: mySessionProvider,
-            delegate: self
-        )
-
-        present(vc, animated: true)
+        do {
+            try await RMOnboardingSDK.startICChipKYC(
+                parentController: self,
+                minor: false,
+                idid: "your-idid",
+                redirectUri: "your-redirect-uri",
+                ratIntializers: ratConfig,
+                supportedKycTypes: "IC",
+                baseURL: "https://your-api-url.com"
+            ) { success, message in
+                if success {
+                    print("✅ KYC completed successfully")
+                } else {
+                    print("❌ KYC failed: \(message ?? "Unknown error")")
+                }
+            }
+        } catch {
+            print("Error starting KYC: \(error)")
+        }
     }
 }
 ```
@@ -120,9 +109,9 @@ class OnboardingViewController: UIViewController {
 │     Your App (Consumer)             │
 │                                     │
 │  import RMOnboardingSDK             │
-│  import RMOnboardingSDKWrapper      │
 │                                     │
-│  RatSdk.setSharedInstance(adapter)  │
+│  RMOnboardingSDK.startICChipKYC()   │
+│  ↓ Automatic initialization         │
 └─────────────────┬───────────────────┘
                   │
                   ▼
@@ -130,18 +119,21 @@ class OnboardingViewController: UIViewController {
 │   RMOnboardingSDK Package           │
 │                                     │
 │  ┌────────────────────────────┐    │
+│  │  RMOnboardingSDKWrapper    │    │
+│  │  (Source Target)           │    │
+│  │  - Auto-initialization     │    │
+│  │  - RatSdk Adapter          │    │
+│  │  - Wrapper methods         │    │
+│  │  - RakutenAnalytics link   │◄──┼─── SPM Dependency
+│  └──────────────┬─────────────┘    │
+│                 │                   │
+│                 ▼                   │
+│  ┌────────────────────────────┐    │
 │  │  OneClick.xcframework      │    │
 │  │  (Binary Target)           │    │
 │  │  - Core SDK                │    │
 │  │  - Protocol-based          │    │
 │  │  - No dependencies         │    │
-│  └────────────────────────────┘    │
-│                                     │
-│  ┌────────────────────────────┐    │
-│  │  RMOnboardingSDKWrapper    │    │
-│  │  (Source Target)           │    │
-│  │  - RatSdk Adapter          │    │
-│  │  - RakutenAnalytics link   │◄──┼─── SPM Dependency
 │  └────────────────────────────┘    │
 └─────────────────────────────────────┘
 ```
@@ -158,11 +150,13 @@ class OnboardingViewController: UIViewController {
 
 ## Features
 
-- ✅ Zero xcframework dependencies - Clean, portable binary
-- ✅ Automatic analytics tracking throughout the onboarding flow
-- ✅ Protocol-based design for testability
-- ✅ Support for both device and simulator architectures
-- ✅ Seamless integration with existing apps
+- ✅ **Zero-configuration setup** - Automatic RakutenAnalytics initialization
+- ✅ **Single method call** - No manual adapter injection required
+- ✅ **Automatic analytics tracking** - Page views and clicks tracked throughout the flow
+- ✅ **Protocol-based architecture** - Testable and flexible design
+- ✅ **Clean binary distribution** - Zero xcframework dependencies
+- ✅ **Multi-architecture support** - Device and simulator compatible
+- ✅ **Seamless integration** - Drop-in replacement for existing implementations
 
 ## Releases
 
