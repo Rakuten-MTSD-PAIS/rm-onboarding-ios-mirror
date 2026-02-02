@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "ios-rakutenanalytics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/rakutenanalytics/ios-rakutenanalytics.git",
+      "state" : {
+        "revision" : "bae50c9f6e687c4339764ddeba395e79ae9f7153",
+        "version" : "10.7.0"
+      }
+    }
+  ],
+  "version" : 2
+}

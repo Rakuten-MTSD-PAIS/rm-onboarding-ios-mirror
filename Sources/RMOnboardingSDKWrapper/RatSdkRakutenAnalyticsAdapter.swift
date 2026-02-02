@@ -9,6 +9,19 @@ import Foundation
 import OneClick
 import RakutenAnalytics
 
+// MARK: - Supporting Types
+
+enum EventType: String {
+    case pageView = "pv"
+    case click = "click"
+}
+
+struct RATConstants {
+    static let flavour = "Production"
+}
+
+// MARK: - Adapter Implementation
+
 /// Concrete implementation of RatSdkProtocol using RakutenAnalytics
 /// This adapter bridges the OneClick framework with RakutenAnalytics SDK
 public final class RatSdkRakutenAnalyticsAdapter: RatSdkProtocol {
