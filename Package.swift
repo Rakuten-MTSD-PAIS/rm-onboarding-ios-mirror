@@ -12,7 +12,7 @@ let package = Package(
         // The main product that consumers will import
         .library(
             name: "RMOnboardingSDK",
-            targets: ["OneClick", "RMOnboardingSDKWrapper"]
+            targets: ["RMOnboardingSDK"]
         ),
     ],
     dependencies: [
@@ -30,14 +30,14 @@ let package = Package(
             path: "OneClick.xcframework.zip"
         ),
 
-        // Wrapper target - bridges OneClick with RakutenAnalytics
+        // Main SDK target - bridges OneClick with RakutenAnalytics
         .target(
-            name: "RMOnboardingSDKWrapper",
+            name: "RMOnboardingSDK",
             dependencies: [
                 "OneClick",
                 .product(name: "RakutenAnalytics", package: "ios-rakutenanalytics")
             ],
-            path: "Sources/RMOnboardingSDKWrapper"
+            path: "Sources/RMOnboardingSDK"
         )
     ]
 )
