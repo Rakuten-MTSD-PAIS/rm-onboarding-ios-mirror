@@ -28,7 +28,7 @@ let package = Package(
         .binaryTarget(
             name: "OneClick",
             path: "OneClick.xcframework.zip"
-        )
+        ),
 
         // Wrapper target - bridges OneClick with RakutenAnalytics
         .target(
