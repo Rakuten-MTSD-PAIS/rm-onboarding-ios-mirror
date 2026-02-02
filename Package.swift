@@ -16,10 +16,10 @@ let package = Package(
         ),
     ],
     dependencies: [
-        // RakutenAnalytics dependency
+        // RakutenAnalytics dependency - uses latest available version
         .package(
             url: "https://github.com/rakutenanalytics/ios-rakutenanalytics.git",
-            from: "10.6.0"
+            from: "11.0.0"
         )
     ],
     targets: [
