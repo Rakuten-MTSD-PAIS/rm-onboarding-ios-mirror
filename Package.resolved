@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/rakutenanalytics/ios-rakutenanalytics.git",
       "state" : {
-        "revision" : "91c2db025870710c1709aa41a936db23bc54dcee",
-        "version" : "11.0.0"
+        "revision" : "bae50c9f6e687c4339764ddeba395e79ae9f7153",
+        "version" : "10.7.0"
       }
     }
   ],
