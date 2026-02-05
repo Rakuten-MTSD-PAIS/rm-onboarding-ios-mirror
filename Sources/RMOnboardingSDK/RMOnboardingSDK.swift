@@ -8,12 +8,98 @@
 import Foundation
 import UIKit
 import OneClick
+import RakutenOneAuthCore
+
+/// JPKI Configuration builder for method chaining
+public class JPKIConfiguration {
+    private weak var jpkiAdapter: JPKIIDSDKAdapter?
+
+    internal init(jpkiAdapter: JPKIIDSDKAdapter?) {
+        self.jpkiAdapter = jpkiAdapter
+    }
+
+    /// Start the IC Chip KYC flow with automatic RakutenAnalytics initialization
+    ///
+    /// - Parameters:
+    ///   - parentController: The parent view controller to present the KYC flow
+    ///   - minor: Whether the user is a minor
+    ///   - idid: The identification ID
+    ///   - redirectUri: The redirect URI after completion
+    ///   - ratIntializers: Optional RAT analytics initializers
+    ///   - supportedKycTypes: Supported KYC types (e.g., "IC")
+    ///   - baseURL: Base URL for the KYC API
+    ///   - enableSecurityCheck: Whether to enable security checks (default: true)
+    ///   - completionHandler: Completion handler with success status and optional message
+    ///
+    /// - Throws: RMOnboardingError if the flow cannot be started
+    public func startICChipKYC(
+        parentController: UIViewController,
+        minor: Bool,
+        idid: String,
+        redirectUri: String,
+        ratIntializers: RatIntializers? = nil,
+        supportedKycTypes: String,
+        baseURL: String,
+        enableSecurityCheck: Bool = true,
+        completionHandler: @escaping (Bool, String?) -> Void
+    ) async throws {
+        // Set parent view controller for JPKI flow
+        jpkiAdapter?.setParentViewController(parentController)
+
+        // Delegate to OneClick SDK
+        try await OneClickSdk.startICChipKYC(
+            parentController: parentController,
+            minor: minor,
+            idid: idid,
+            redirectUri: redirectUri,
+            ratIntializers: ratIntializers,
+            supportedKycTypes: supportedKycTypes,
+            baseURL: baseURL,
+            enableSecurityCheck: enableSecurityCheck,
+            completionHandler: completionHandler
+        )
+    }
+
+    /// Start the IC Chip KYC flow from a deep link or custom scheme URL
+    ///
+    /// - Parameters:
+    ///   - parentController: The parent view controller to present the KYC flow
+    ///   - url: Universal link or custom scheme URL
+    ///   - ratIntializers: Optional RAT analytics initializers
+    ///   - baseURL: Base URL for the KYC API
+    ///   - enableSecurityCheck: Whether to enable security checks (default: true)
+    ///   - completionHandler: Completion handler with success status and optional message
+    ///
+    /// - Throws: RMOnboardingError if the URL is invalid or the flow cannot be started
+    public func startICChipKYC(
+        parentController: UIViewController,
+        url: URL,
+        ratIntializers: RatIntializers? = nil,
+        baseURL: String,
+        enableSecurityCheck: Bool = true,
+        completionHandler: @escaping (Bool, String?) -> Void
+    ) async throws {
+        // Set parent view controller for JPKI flow
+        jpkiAdapter?.setParentViewController(parentController)
+
+        // Delegate to RMOnboardingSDK's URL-based method
+        try await RMOnboardingSDK.startICChipKYC(
+            parentController: parentController,
+            url: url,
+            ratIntializers: ratIntializers,
+            baseURL: baseURL,
+            enableSecurityCheck: enableSecurityCheck,
+            completionHandler: completionHandler
+        )
+    }
+}
 
 /// Main entry point for RMOnboardingSDK
 /// Provides simplified initialization and wrapper methods for consuming apps
 public enum RMOnboardingSDK {
 
     private static var isInitialized = false
+    private static var jpkiAdapter: JPKIIDSDKAdapter?
 
     /// Internal initialization - automatically called when using RMOnboardingSDK methods
     private static func initializeIfNeeded() {
@@ -22,11 +108,16 @@ public enum RMOnboardingSDK {
         }
 
         // Create and inject the RakutenAnalytics adapter
-        let adapter = RatSdkRakutenAnalyticsAdapter()
-        RatSdk.setSharedInstance(adapter)
+        let ratAdapter = RatSdkRakutenAnalyticsAdapter()
+        RatSdk.setSharedInstance(ratAdapter)
+
+        // Create and inject the IDSDK JPKI adapter
+        let adapter = JPKIIDSDKAdapter()
+        JPKIHandler.setSharedInstance(adapter)
+        jpkiAdapter = adapter
 
         isInitialized = true
-        debugPrint("[RMOnboardingSDK] Successfully initialized with RakutenAnalytics adapter")
+        debugPrint("[RMOnboardingSDK] Successfully initialized with RakutenAnalytics and IDSDK adapters")
     }
 
     /// Start the IC Chip KYC flow with automatic RakutenAnalytics initialization
@@ -81,6 +172,9 @@ public enum RMOnboardingSDK {
     ) async throws {
         // Automatically initialize RakutenAnalytics adapter if not already done
         initializeIfNeeded()
+
+        // Set parent view controller for JPKI flow
+        jpkiAdapter?.setParentViewController(parentController)
 
         // Delegate to OneClick SDK
         try await OneClickSdk.startICChipKYC(
@@ -137,16 +231,19 @@ public enum RMOnboardingSDK {
     ) async throws {
         // Validate URL path - supports both universal links and custom schemes
         let isValidPath: Bool
+        let scheme = url.scheme?.lowercased() ?? ""
         let host = url.host ?? ""
         let path = url.path
 
-        if !host.isEmpty {
+        if scheme == "http" || scheme == "https" {
+            // Universal link format: https://example.com/ekyc/ic
+            isValidPath = path == "/ekyc/ic"
+        } else if !host.isEmpty {
             // Custom scheme format: app://ekyc/ic
             let fullPath = "/\(host)\(path)"
             isValidPath = fullPath == "/ekyc/ic"
         } else {
-            // Universal link format: https://example.com/ekyc/ic
-            isValidPath = path == "/ekyc/ic"
+            isValidPath = false
         }
 
         guard isValidPath else {
@@ -178,6 +275,30 @@ public enum RMOnboardingSDK {
             enableSecurityCheck: enableSecurityCheck,
             completionHandler: completionHandler
         )
+    }
+
+    /// Configure JPKI with SessionProvider from RakutenOneAuth
+    /// This should be called by the app after authentication
+    /// Returns a JPKIConfiguration object that can be used to chain startICChipKYC calls
+    /// - Parameters:
+    ///   - sessionProvider: SessionProvider from RakutenOneAuth
+    ///   - clientID: Client ID for the redeemer (provided by the host app)
+    ///   - environment: Environment configuration (staging, production, or custom). Defaults to staging.
+    /// - Returns: JPKIConfiguration object for method chaining
+    @discardableResult
+    public static func configureJPKI(
+        sessionProvider: SessionProvider,
+        clientID: String,
+        environment: JPKIEnvironment = .staging
+    ) -> JPKIConfiguration {
+        // Ensure SDK is initialized first
+        initializeIfNeeded()
+
+        // Configure the JPKI adapter with session provider, client ID, and environment
+        jpkiAdapter?.configure(sessionProvider: sessionProvider, clientID: clientID, environment: environment)
+        debugPrint("[RMOnboardingSDK] JPKI configured with SessionProvider, clientID: \(clientID), environment: \(environment)")
+
+        return JPKIConfiguration(jpkiAdapter: jpkiAdapter)
     }
 
     /// Check if the SDK has been initialized
