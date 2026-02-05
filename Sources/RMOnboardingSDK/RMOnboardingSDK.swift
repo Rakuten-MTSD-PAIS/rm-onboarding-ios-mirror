@@ -8,12 +8,14 @@
 import Foundation
 import UIKit
 import OneClick
+import RakutenOneAuthCore
 
 /// Main entry point for RMOnboardingSDK
 /// Provides simplified initialization and wrapper methods for consuming apps
 public enum RMOnboardingSDK {
 
     private static var isInitialized = false
+    private static var jpkiAdapter: JPKIIDSDKAdapter?
 
     /// Internal initialization - automatically called when using RMOnboardingSDK methods
     private static func initializeIfNeeded() {
@@ -22,11 +24,16 @@ public enum RMOnboardingSDK {
         }
 
         // Create and inject the RakutenAnalytics adapter
-        let adapter = RatSdkRakutenAnalyticsAdapter()
-        RatSdk.setSharedInstance(adapter)
+        let ratAdapter = RatSdkRakutenAnalyticsAdapter()
+        RatSdk.setSharedInstance(ratAdapter)
+
+        // Create and inject the IDSDK JPKI adapter
+        let adapter = JPKIIDSDKAdapter()
+        JPKIHandler.setSharedInstance(adapter)
+        jpkiAdapter = adapter
 
         isInitialized = true
-        debugPrint("[RMOnboardingSDK] Successfully initialized with RakutenAnalytics adapter")
+        debugPrint("[RMOnboardingSDK] Successfully initialized with RakutenAnalytics and IDSDK adapters")
     }
 
     /// Start the IC Chip KYC flow with automatic RakutenAnalytics initialization
@@ -81,6 +88,9 @@ public enum RMOnboardingSDK {
     ) async throws {
         // Automatically initialize RakutenAnalytics adapter if not already done
         initializeIfNeeded()
+
+        // Set parent view controller for JPKI flow
+        jpkiAdapter?.setParentViewController(parentController)
 
         // Delegate to OneClick SDK
         try await OneClickSdk.startICChipKYC(
@@ -137,16 +147,19 @@ public enum RMOnboardingSDK {
     ) async throws {
         // Validate URL path - supports both universal links and custom schemes
         let isValidPath: Bool
+        let scheme = url.scheme?.lowercased() ?? ""
         let host = url.host ?? ""
         let path = url.path
 
-        if !host.isEmpty {
+        if scheme == "http" || scheme == "https" {
+            // Universal link format: https://example.com/ekyc/ic
+            isValidPath = path == "/ekyc/ic"
+        } else if !host.isEmpty {
             // Custom scheme format: app://ekyc/ic
             let fullPath = "/\(host)\(path)"
             isValidPath = fullPath == "/ekyc/ic"
         } else {
-            // Universal link format: https://example.com/ekyc/ic
-            isValidPath = path == "/ekyc/ic"
+            isValidPath = false
         }
 
         guard isValidPath else {
@@ -178,6 +191,25 @@ public enum RMOnboardingSDK {
             enableSecurityCheck: enableSecurityCheck,
             completionHandler: completionHandler
         )
+    }
+
+    /// Configure JPKI with SessionProvider from RakutenOneAuth
+    /// This should be called by the app after authentication
+    /// - Parameters:
+    ///   - sessionProvider: SessionProvider from RakutenOneAuth
+    ///   - jpkiUrl: JPKI URL (defaults to staging URL)
+    ///   - languageUrl: Language configuration URL (defaults to staging URL)
+    public static func configureJPKI(
+        sessionProvider: SessionProvider,
+        jpkiUrl: String = "https://stg-jpki.id.rakuten.co.jp",
+        languageUrl: String = "https://stg-qa.static.id.rakuten.co.jp/static/ekyc/ja/generic.json"
+    ) {
+        // Ensure SDK is initialized first
+        initializeIfNeeded()
+
+        // Configure the JPKI adapter with session provider and URLs
+        jpkiAdapter?.configure(sessionProvider: sessionProvider, jpkiUrl: jpkiUrl, languageUrl: languageUrl)
+        debugPrint("[RMOnboardingSDK] JPKI configured with SessionProvider")
     }
 
     /// Check if the SDK has been initialized
