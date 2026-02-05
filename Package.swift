@@ -20,6 +20,11 @@ let package = Package(
         .package(
             url: "https://github.com/rakutenanalytics/ios-rakutenanalytics.git",
             from: "10.6.0"
+        ),
+        // RakutenOneAuth (ID SDK) for JPKI digital signature
+        .package(
+            url: "https://ghe.rakuten-it.com/rtoken/id-sdk-ios",
+            from: "4.0.0"
         )
     ],
     targets: [
@@ -30,12 +35,14 @@ let package = Package(
             path: "OneClick.xcframework.zip"
         ),
 
-        // Main SDK target - bridges OneClick with RakutenAnalytics
+        // Main SDK target - bridges OneClick with RakutenAnalytics and RakutenOneAuth
         .target(
             name: "RMOnboardingSDK",
             dependencies: [
                 "OneClick",
-                .product(name: "RakutenAnalytics", package: "ios-rakutenanalytics")
+                .product(name: "RakutenAnalytics", package: "ios-rakutenanalytics"),
+                .product(name: "RakutenOneAuthCore", package: "id-sdk-ios"),
+                .product(name: "RakutenOneAuthEkyc", package: "id-sdk-ios")
             ],
             path: "Sources/RMOnboardingSDK"
         )
