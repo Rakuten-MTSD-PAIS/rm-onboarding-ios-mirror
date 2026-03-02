@@ -36,7 +36,7 @@ public enum RMOnboardingSDK {
     ///   - minor: Whether the user is a minor
     ///   - idid: The identification ID
     ///   - redirectUri: The redirect URI after completion
-    ///   - ratIntializers: Optional RAT analytics initializers
+    ///   - ratInitializers: Optional RAT analytics initializers
     ///   - supportedKycTypes: Supported KYC types (e.g., "IC")
     ///   - baseURL: Base URL for the KYC API
     ///   - enableSecurityCheck: Whether to enable security checks (default: true)
@@ -48,7 +48,7 @@ public enum RMOnboardingSDK {
     /// ```swift
     /// import RMOnboardingSDK
     ///
-    /// let ratConfig = RatIntializers(
+    /// let ratConfig = RatInitializers(
     ///     customerId: nil,
     ///     contractedPlan: nil,
     ///     accountId: 1316,
@@ -61,7 +61,7 @@ public enum RMOnboardingSDK {
     ///     minor: false,
     ///     idid: "your-idid",
     ///     redirectUri: "your-redirect-uri",
-    ///     ratIntializers: ratConfig,
+    ///     ratInitializers: ratConfig,
     ///     supportedKycTypes: "IC",
     ///     baseURL: "https://your-api-url.com"
     /// ) { success, message in
@@ -73,7 +73,7 @@ public enum RMOnboardingSDK {
         minor: Bool,
         idid: String,
         redirectUri: String,
-        ratIntializers: RatIntializers? = nil,
+        ratInitializers: RatInitializers? = nil,
         supportedKycTypes: String,
         baseURL: String,
         enableSecurityCheck: Bool = true,
@@ -88,7 +88,7 @@ public enum RMOnboardingSDK {
             minor: minor,
             idid: idid,
             redirectUri: redirectUri,
-            ratIntializers: ratIntializers,
+            ratInitializers: ratInitializers,
             supportedKycTypes: supportedKycTypes,
             baseURL: baseURL,
             enableSecurityCheck: enableSecurityCheck,
@@ -130,7 +130,7 @@ public enum RMOnboardingSDK {
     public static func startICChipKYC(
         parentController: UIViewController,
         url: URL,
-        ratIntializers: RatIntializers? = nil,
+        ratInitializers: RatInitializers? = nil,
         baseURL: String,
         enableSecurityCheck: Bool = true,
         completionHandler: @escaping (Bool, String?) -> Void
@@ -175,7 +175,7 @@ public enum RMOnboardingSDK {
             minor: minor,
             idid: idid,
             redirectUri: redirectUri,
-            ratIntializers: ratIntializers,
+            ratInitializers: ratInitializers,
             supportedKycTypes: supportedKycTypes,
             baseURL: baseURL,
             enableSecurityCheck: enableSecurityCheck,

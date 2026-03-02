@@ -33,7 +33,7 @@ Or in Xcode:
 
 **Single import includes everything you need:**
 - `RMOnboardingSDK` - Main SDK wrapper with automatic analytics
-- `RatIntializers` - Analytics configuration
+- `RatInitializers` - Analytics configuration
 - `RMOnboardingError` - Error handling (alias for OneClickSdkError)
 
 ```swift
@@ -46,7 +46,7 @@ import RMOnboardingSDK
 
 ```swift
 // Start the onboarding flow
-let ratConfig = RatIntializers(
+let ratConfig = RatInitializers(
     customerId: "your-customer-id",
     contractedPlan: "your-plan",
     accountId: 1316,
@@ -59,7 +59,7 @@ try await RMOnboardingSDK.startICChipKYC(
     minor: false,
     idid: "your-idid",
     redirectUri: "your-redirect-uri",
-    ratIntializers: ratConfig,
+    ratInitializers: ratConfig,
     supportedKycTypes: "IC",
     baseURL: "https://your-api-url.com"
 ) { success, message in
@@ -76,7 +76,7 @@ import RMOnboardingSDK
 class OnboardingViewController: UIViewController {
 
     func startOnboarding() async {
-        let ratConfig = RatIntializers(
+        let ratConfig = RatInitializers(
             customerId: "customer-123",
             contractedPlan: "premium",
             accountId: 1316,
@@ -90,7 +90,7 @@ class OnboardingViewController: UIViewController {
                 minor: false,
                 idid: "your-idid",
                 redirectUri: "your-redirect-uri",
-                ratIntializers: ratConfig,
+                ratInitializers: ratConfig,
                 supportedKycTypes: "IC",
                 baseURL: "https://your-api-url.com"
             ) { success, message in
