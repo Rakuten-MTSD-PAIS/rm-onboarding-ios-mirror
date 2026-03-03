@@ -33,7 +33,7 @@ Or in Xcode:
 
 **Single import includes everything you need:**
 - `RMOnboardingSDK` - Main SDK wrapper with automatic analytics
-- `RatIntializers` - Analytics configuration
+- `RatInitializers` - Analytics configuration
 - `RMOnboardingError` - Error handling (alias for OneClickSdkError)
 - `JPKIEnvironment` - Environment configuration for JPKI
 
@@ -88,7 +88,7 @@ RMOnboardingSDK.configureJPKI(
 Configure JPKI and start KYC in a single chain:
 
 ```swift
-let ratConfig = RatIntializers(
+let ratConfig = RatInitializers(
     customerId: "your-customer-id",
     contractedPlan: "your-plan",
     accountId: 1316,
@@ -107,7 +107,7 @@ try await RMOnboardingSDK
         minor: false,
         idid: "your-idid",
         redirectUri: "your-redirect-uri",
-        ratIntializers: ratConfig,
+        ratInitializers: ratConfig,
         supportedKycTypes: "IC",
         baseURL: "https://your-api-url.com"
     ) { success, message in
@@ -135,7 +135,7 @@ try await RMOnboardingSDK.startICChipKYC(
     minor: false,
     idid: "your-idid",
     redirectUri: "your-redirect-uri",
-    ratIntializers: ratConfig,
+    ratInitializers: ratConfig,
     supportedKycTypes: "IC",
     baseURL: "https://your-api-url.com"
 ) { success, message in
@@ -161,7 +161,7 @@ class OnboardingViewController: UIViewController {
             return
         }
 
-        let ratConfig = RatIntializers(
+        let ratConfig = RatInitializers(
             customerId: "customer-123",
             contractedPlan: "premium",
             accountId: 1316,
@@ -182,7 +182,7 @@ class OnboardingViewController: UIViewController {
                     minor: false,
                     idid: "your-idid",
                     redirectUri: "your-redirect-uri",
-                    ratIntializers: ratConfig,
+                    ratInitializers: ratConfig,
                     supportedKycTypes: "IC",
                     baseURL: "https://your-api-url.com"
                 ) { success, message in
@@ -212,7 +212,7 @@ func handleDeepLink(url: URL) async {
         return
     }
 
-    let ratConfig = RatIntializers(
+    let ratConfig = RatInitializers(
         customerId: "customer-123",
         contractedPlan: "premium",
         accountId: 1316,
@@ -230,7 +230,7 @@ func handleDeepLink(url: URL) async {
             .startICChipKYC(
                 parentController: self,
                 url: url,  // URL format: https://example.com/ekyc/ic?idid=...&minor=false
-                ratIntializers: ratConfig,
+                ratInitializers: ratConfig,
                 baseURL: "https://your-api-url.com"
             ) { success, message in
                 print("KYC completed: \(success)")

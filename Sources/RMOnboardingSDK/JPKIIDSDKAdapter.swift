@@ -15,7 +15,7 @@ import RakutenOneAuthCore
 public enum JPKIEnvironment {
     case staging
     case production
-    case custom(jpkiUrl: String, languageUrl: String)
+    case custom(jpkiUrl: String, languageUrl: String, exchangeTokenAudience: String = "jpki")
 
     var jpkiUrl: String {
         switch self {
@@ -23,7 +23,7 @@ public enum JPKIEnvironment {
             return "https://stg-jpki.id.rakuten.co.jp"
         case .production:
             return "https://jpki.id.rakuten.co.jp"
-        case .custom(let jpkiUrl, _):
+        case .custom(let jpkiUrl, _, _):
             return jpkiUrl
         }
     }
@@ -34,8 +34,17 @@ public enum JPKIEnvironment {
             return "https://stg-qa.static.id.rakuten.co.jp/static/ekyc/ja/generic.json"
         case .production:
             return "https://static.id.rakuten.co.jp/static/ekyc/jpn/generic.json"
-        case .custom(_, let languageUrl):
+        case .custom(_, let languageUrl, _):
             return languageUrl
+        }
+    }
+
+    var exchangeTokenAudience: String {
+        switch self {
+        case .staging, .production:
+            return "jpki"
+        case .custom(_, _, let audience):
+            return audience
         }
     }
 }
@@ -56,14 +65,17 @@ public class JPKIIDSDKAdapter: JPKIProtocol {
     ///   - sessionProvider: SessionProvider from RakutenOneAuth
     ///   - clientID: Client ID for the redeemer (provided by the host app)
     ///   - environment: Environment configuration (staging, production, or custom). Defaults to staging.
+    /// - Returns: Self for method chaining
+    @discardableResult
     public func configure(
         sessionProvider: SessionProvider,
         clientID: String,
         environment: JPKIEnvironment = .staging
-    ) {
+    ) -> JPKIIDSDKAdapter {
         self.sessionProvider = sessionProvider
         self.clientID = clientID
         self.environment = environment
+        return self
     }
 
     /// Set the parent view controller for the current flow
@@ -180,21 +192,93 @@ public class JPKIIDSDKAdapter: JPKIProtocol {
         debugPrint("[JPKIIDSDKAdapter] Environment: \(environment)")
         debugPrint("[JPKIIDSDKAdapter] JPKI URL: \(environment.jpkiUrl)")
         debugPrint("[JPKIIDSDKAdapter] Language URL: \(environment.languageUrl)")
+        debugPrint("[JPKIIDSDKAdapter] Exchange Token Audience: \(environment.exchangeTokenAudience)")
 
-        // STEP 3: Call RakutenOneAuth eKYC
-        sessionProvider.eKYC(configuration: ekycConfig) { result in
+        // STEP 3: Call RakutenOneAuth eKYC to get ekyc_access_key
+        sessionProvider.eKYC(configuration: ekycConfig) { [weak self] result in
             switch result {
-            case .success(let token):
+            case .success(let ekycAccessToken):
                 debugPrint("[JPKIIDSDKAdapter] ✅ eKYC Success")
-                debugPrint("[JPKIIDSDKAdapter] Access Token (exchangeToken): \(token.value)")
-                debugPrint("[JPKIIDSDKAdapter] Client ID: \(clientID)")
-                debugPrint("[JPKIIDSDKAdapter] Token valid until: \(Date(timeIntervalSince1970: token.validUntil))")
+                debugPrint("[JPKIIDSDKAdapter] eKYC Access Key: \(ekycAccessToken.value)")
+                debugPrint("[JPKIIDSDKAdapter] Token valid until: \(Date(timeIntervalSince1970: ekycAccessToken.validUntil))")
 
-                // Return easyId, exchangeToken, and clientID
-                completion(.success((easyId: easyId, exchangeToken: token.value, clientID: clientID)))
+                // STEP 4: Get Exchange Token using ekyc_access_key
+                self?.getExchangeToken(
+                    sessionProvider: sessionProvider,
+                    navigationController: navigationController,
+                    ekycAccessKey: ekycAccessToken.value,
+                    clientID: clientID,
+                    easyId: easyId,
+                    completion: completion
+                )
 
             case .failure(let error):
                 debugPrint("[JPKIIDSDKAdapter] ❌ eKYC Error: \(error.localizedDescription)")
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// Get Exchange Token from ID SDK using ekyc_access_key
+    /// This matches the Android implementation in IdSdkJpkiManager.performJPKIVerification
+    private func getExchangeToken(
+        sessionProvider: SessionProvider,
+        navigationController: UINavigationController,
+        ekycAccessKey: String,
+        clientID: String,
+        easyId: String,
+        completion: @escaping (Result<(easyId: String, exchangeToken: String, clientID: String), Error>) -> Void
+    ) {
+        debugPrint("[JPKIIDSDKAdapter] Creating exchange token provider with ekyc_access_key...")
+
+        // Create exchange token provider with replay parameters including ekyc_access_key
+        // This matches Android: replay = buildJsonObject { put("redeemer", redeemerClientId); put("ekyc_access_key", ekycAccessToken.value) }
+
+        // Build configuration dictionary with audience, scope, and replay
+        var configuration: [String: Any] = [
+            "audience": self.environment.exchangeTokenAudience,
+            "scope": []// Empty scope array as not required for JPKI
+        ]
+
+        // Add replay parameters with redeemer and ekyc_access_key
+        configuration["replay"] = [
+            "redeemer": clientID,
+            "ekyc_access_key": ekycAccessKey
+        ]
+
+        // Create ArtifactSpecification
+        let artifactSpec = ArtifactSpecification(
+            identifier: "tokens::exchange",
+            configuration: configuration,
+            allowSiblings: true
+        )
+
+        // Get exchange token provider
+        let exchangeTokenProvider = sessionProvider.artifacts.exchangeToken(configuration: artifactSpec).provider()
+
+        // Build mediation options
+        let mediationOptions: SessionMediationOptions = SessionMediationOptionsBuilder()
+            .set(mediation: .wheneverRequired)
+            .set(presentationAnchorProvider: { navigationController.view.window! })
+            .build()
+
+        debugPrint("[JPKIIDSDKAdapter] Requesting exchange token from ID SDK...")
+
+        // Get the exchange token
+        exchangeTokenProvider.token(mediation:mediationOptions ) { result in
+            switch result {
+            case .success(let exchangeToken):
+                debugPrint("[JPKIIDSDKAdapter] ✅ Exchange Token retrieved successfully")
+                debugPrint("[JPKIIDSDKAdapter] Exchange Token: \(exchangeToken.value)")
+                debugPrint("[JPKIIDSDKAdapter] Easy ID: \(easyId)")
+                debugPrint("[JPKIIDSDKAdapter] Client ID: \(clientID)")
+                debugPrint("[JPKIIDSDKAdapter] Token valid until: \(Date(timeIntervalSince1970: exchangeToken.validUntil))")
+
+                // Return easyId, exchangeToken (NOT ekycAccessToken), and clientID
+                completion(.success((easyId: easyId, exchangeToken: exchangeToken.value, clientID: clientID)))
+
+            case .failure(let error):
+                debugPrint("[JPKIIDSDKAdapter] ❌ Failed to retrieve exchange token: \(error.localizedDescription)")
                 completion(.failure(error))
             }
         }
