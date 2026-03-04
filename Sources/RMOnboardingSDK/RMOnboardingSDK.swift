@@ -163,6 +163,7 @@ public enum RMOnboardingSDK {
         // Extract parameters with empty string defaults (matching sample app behavior)
         let idid = queryItems?.first(where: { $0.name == "idid" })?.value ?? ""
         let redirectUri = queryItems?.first(where: { $0.name == "redirect_uri" })?.value ?? ""
+        let decodedRedirectUri = redirectUri.removingPercentEncoding ?? redirectUri
         let supportedKycTypes = queryItems?.first(where: { $0.name == "suppurted_kyc_types" })?.value ?? ""
 
         // Parse minor parameter (defaults to false if not present or invalid)
@@ -174,7 +175,7 @@ public enum RMOnboardingSDK {
             parentController: parentController,
             minor: minor,
             idid: idid,
-            redirectUri: redirectUri,
+            redirectUri: decodedRedirectUri,
             ratInitializers: ratInitializers,
             supportedKycTypes: supportedKycTypes,
             baseURL: baseURL,
@@ -183,6 +184,22 @@ public enum RMOnboardingSDK {
         )
     }
 
+    public static func startOneClickWebview(
+        parentController: UIViewController,
+        sourceApplication: String,
+        portUrl: String,
+        accessToken: String,
+        locale: String,
+        ratInitializers: RatInitializers? = nil,
+        baseURLForIC: String
+    ){
+        // Automatically initialize RakutenAnalytics adapter if not already done
+        initializeIfNeeded()
+        let config = OneClickSdkConfig(sourceApplication:  sourceApplication ?? "default_app")
+        let oneClick = OneClickSdk(config: config, parent: parentController)
+        oneClick.startWebView(url: portUrl, token: accessToken, localId: locale ?? "", ratConfig: ratInitializers, baseUrl: baseURLForIC)
+    }
+    
     /// Check if the SDK has been initialized
     public static var initialized: Bool {
         return isInitialized
