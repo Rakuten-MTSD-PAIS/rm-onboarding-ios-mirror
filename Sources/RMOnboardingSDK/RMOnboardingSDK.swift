@@ -210,7 +210,7 @@ public enum RMOnboardingSDK {
     /// ```swift
     /// import RMOnboardingSDK
     ///
-    /// let deepLinkURL = URL(string: "https://example.com/ekyc/ic?idid=123&minor=false&redirect_uri=app://callback&suppurted_kyc_types=IC")!
+    /// let deepLinkURL = URL(string: "https://example.com/ekyc/ic?idid=123&minor=false&redirect_uri=app://callback&supported_kyc_types=IC")!
     ///
     /// try await RMOnboardingSDK.startICChipKYC(
     ///     parentController: self,
@@ -258,7 +258,7 @@ public enum RMOnboardingSDK {
         let idid = queryItems?.first(where: { $0.name == "idid" })?.value ?? ""
         let redirectUri = queryItems?.first(where: { $0.name == "redirect_uri" })?.value ?? ""
         let decodedRedirectUri = redirectUri.removingPercentEncoding ?? redirectUri
-        let supportedKycTypes = queryItems?.first(where: { $0.name == "suppurted_kyc_types" })?.value ?? ""
+        let supportedKycTypes = queryItems?.first(where: { $0.name == "supported_kyc_types" })?.value ?? ""
 
         // Parse minor parameter (defaults to false if not present or invalid)
         let minorString = queryItems?.first(where: { $0.name == "minor" })?.value
@@ -313,9 +313,9 @@ public enum RMOnboardingSDK {
     ){
         // Automatically initialize RakutenAnalytics adapter if not already done
         initializeIfNeeded()
-        let config = OneClickSdkConfig(sourceApplication:  sourceApplication ?? "default_app")
+        let config = OneClickSdkConfig(sourceApplication:  sourceApplication)
         let oneClick = OneClickSdk(config: config, parent: parentController)
-        oneClick.startWebView(url: portUrl, token: accessToken, localId: locale ?? "", ratConfig: ratInitializers, baseUrl: baseURLForIC)
+        oneClick.startWebView(url: portUrl, token: accessToken, localId: locale, ratConfig: ratInitializers, baseUrl: baseURLForIC)
     }
     
     /// Check if the SDK has been initialized
