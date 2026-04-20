@@ -24,6 +24,7 @@ struct RATConstants {
 
 /// Concrete implementation of RatSdkProtocol using RakutenAnalytics
 /// This adapter bridges the OneClick framework with RakutenAnalytics SDK
+@MainActor
 public final class RatSdkRakutenAnalyticsAdapter: RatSdkProtocol {
 
     private var customerId: String?
