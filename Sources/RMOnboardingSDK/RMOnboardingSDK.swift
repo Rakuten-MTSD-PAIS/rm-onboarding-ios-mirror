@@ -11,6 +11,7 @@ import OneClick
 import RakutenOneAuthCore
 
 /// JPKI Configuration builder for method chaining
+@MainActor
 public class JPKIConfiguration {
     private weak var jpkiAdapter: JPKIIDSDKAdapter?
 
@@ -96,6 +97,7 @@ public class JPKIConfiguration {
 
 /// Main entry point for RMOnboardingSDK
 /// Provides simplified initialization and wrapper methods for consuming apps
+@MainActor
 public enum RMOnboardingSDK {
 
     private static var isInitialized = false
