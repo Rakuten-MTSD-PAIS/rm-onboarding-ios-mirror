@@ -50,6 +50,7 @@ public enum JPKIEnvironment {
 }
 
 /// Adapter that bridges OneClick's JPKIProtocol with RakutenOneAuth (ID SDK) implementation
+@MainActor
 public class JPKIIDSDKAdapter: JPKIProtocol {
 
     private var sessionProvider: SessionProvider?
